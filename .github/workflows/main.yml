@@ -1,8 +1,8 @@
 name: Get Sentiment and update GitHub page
 
 on:
-  schedule:
-  - cron: "0 */1 * * *" # runs every hour
+  push:
+    branches: [ main ]
   
 jobs:
   build:
