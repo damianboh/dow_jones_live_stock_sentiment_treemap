@@ -24,7 +24,7 @@ jobs:
       - name: Execute python script to update sentiment page
         run: python update_sentiment_page.py
         
-      - name: Init new repo and commit generated html file
+      - name: Clone repo from your GitHub page and commit newly generated sentiment html file
         run: |
           git clone https://github.com/damianboh/damianboh.github.io.git/ # change 'damianboh' to your username, this will clone your website repository into a folder 'your_username.github.io'
           cp dow_jones_live_sentiment.html damianboh.github.io/dow_jones_live_sentiment.html # change 'damianboh to your username
@@ -38,7 +38,7 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}          
+          github_token: ${{ secrets.TOKEN }}          
           # Repository name to push. Default or empty value represents current github repository (${GITHUB_REPOSITORY})
           repository: "damianboh/damianboh.github.io" # change to your repository
           branch: "main"
