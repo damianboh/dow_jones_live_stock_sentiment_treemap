@@ -44,3 +44,5 @@ jobs:
           branch: "main"
           # Determines if force push is used
           force: true
+          # Directory to change to before pushing.
+          directory: ./damianboh.github.io
