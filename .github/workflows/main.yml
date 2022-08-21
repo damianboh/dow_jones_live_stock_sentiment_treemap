@@ -26,11 +26,14 @@ jobs:
         
       - name: Init new repo in dist folder and commit generated files
         run: |
-          git init
+          git clone https://github.com/damianboh/damianboh.github.io.git/
+          cp dow_jones_live_sentiment.html damianboh.github.io/dow_jones_live_sentiment.html
+          cd damianboh.github.io
           git add dow_jones_live_sentiment.html
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -m 'refresh page'        
+          git push -u origin main
         
       - name: Push updated html to github.io page
         uses: ad-m/github-push-action@master
