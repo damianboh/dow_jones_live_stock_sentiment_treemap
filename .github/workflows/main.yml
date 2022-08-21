@@ -30,11 +30,10 @@ jobs:
           git add dow_jones_live_sentiment.html
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -m 'refresh page'
-          git config --global --add safe.directory /github/workspace          
+          git commit -m 'refresh page'        
         
       - name: Push updated html to github.io page
-        uses: ad-m/github-push-action@v0.5.0
+        uses: ad-m/github-push-action@master
         with:
           # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
