@@ -3,7 +3,7 @@ name: Get Sentiment and update GitHub page
 on:
   push:
     branches: [ main ]
-  
+    
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git commit -m 'refresh page'
         
-      - name: Force push to master
+      - name: Push updated html to github.io page
         uses: ad-m/github-push-action@v0.5.0
         with:
           # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
