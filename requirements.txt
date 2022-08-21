@@ -1,5 +1,5 @@
 yfinance
 bs4
-urllib
+urllib3
 plotly
 nltk
