@@ -33,7 +33,7 @@ for ticker in tickers:
     try:
        response = urlopen(req)   
     except:
-       time.sleep(3) # if there is an error and request is blocked, do it more slowly by waiting for 3 seconds before requesting again
+       time.sleep(10) # if there is an error and request is blocked, do it more slowly by waiting for 10 seconds before requesting again
        response = urlopen(req)  
         
     # Read the contents of the file into 'html'
