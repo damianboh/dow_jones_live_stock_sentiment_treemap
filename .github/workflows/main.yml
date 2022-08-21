@@ -30,15 +30,15 @@ jobs:
           cp dow_jones_live_sentiment.html damianboh.github.io/dow_jones_live_sentiment.html # change 'damianboh to your username
           cd damianboh.github.io # change 'damianboh to your username
           git add dow_jones_live_sentiment.html
-          git config --local user.email "bck1990@gmail.com"
-          git config --local user.name "damianboh"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
           git commit -m 'refresh page'        
         
       - name: Push updated html to github.io page
         uses: ad-m/github-push-action@master
         with:
           # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}          
+          github_token: ${{ secrets.TOKEN }}          
           # Repository name to push. Default or empty value represents current github repository (${GITHUB_REPOSITORY})
           repository: "damianboh/damianboh.github.io" # change to your repository
           branch: "main"
