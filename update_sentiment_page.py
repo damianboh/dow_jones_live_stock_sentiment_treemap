@@ -22,7 +22,6 @@ df_dow_jones = pd.read_html("https://en.wikipedia.org/wiki/Dow_Jones_Industrial_
 tickers = df_dow_jones['Symbol'].tolist()
 
 # Scrape the Date, Time and News Headlines Data
-# Scrape the Date, Time and News Headlines Data
 finwiz_url = 'https://finviz.com/quote.ashx?t='
 news_tables = {}
 
