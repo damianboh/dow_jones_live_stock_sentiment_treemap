@@ -36,8 +36,9 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}          
           # Repository name to push. Default or empty value represents current github repository (${GITHUB_REPOSITORY})
           repository: "damianboh.github.io" # change to your repository
+          branch: "main"
           # Determines if force push is used
           force: true
