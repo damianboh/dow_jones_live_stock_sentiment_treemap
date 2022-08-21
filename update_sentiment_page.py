@@ -6,7 +6,6 @@ import yfinance as yf
 # for plotting and data manipulation
 import pandas as pd
 import matplotlib.pyplot as plt
-%matplotlib inline
 import plotly
 import plotly.express as px
 
@@ -130,7 +129,7 @@ now = datetime.now()
 dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
 
 # Generate HTML File with Updated Time and Treemap
-with open('page/dow_jones_live_sentiment.html', 'a') as f:
+with open('dow_jones_live_sentiment.html', 'a') as f:
     f.truncate(0) # clear file if something is already written on it
     title = "<h1>Dow Jones Stock Sentiment Dashboard</h1>"
     updated = "<h2>Last updated: " + dt_string + "</h2>"
