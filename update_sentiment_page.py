@@ -130,16 +130,17 @@ fig.data[0].texttemplate = "%{label}<br>%{customdata[4]}"
 fig.update_traces(textposition="middle center")
 fig.update_layout(margin = dict(t=30, l=10, r=10, b=10), font_size=20)
 
-# datetime object containing current date and time
+# Get current date, time and timezone to print to the html page
 now = datetime.now()
 dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+timezone_string = datetime.now().astimezone().tzname()
 
 # Generate HTML File with Updated Time and Treemap
 with open('dow_jones_live_sentiment.html', 'a') as f:
     f.truncate(0) # clear file if something is already written on it
     title = "<h1>Dow Jones Stock Sentiment Dashboard</h1>"
-    updated = "<h2>Last updated: " + dt_string + "</h2>"
-    description = "This dashboard is updated every hour with sentiment analysis performed on latest scraped news headlines from the FinViz website."
+    updated = "<h2>Last updated: " + dt_string + " (Timezone: " + timezone_string + ")</h2>"
+    description = "This dashboard is updated every half an hour with sentiment analysis performed on latest scraped news headlines from the FinViz website."
     f.write(title + updated + description)
     f.write(fig.to_html(full_html=False, include_plotlyjs='cdn')) # write the fig created above into the html file
 

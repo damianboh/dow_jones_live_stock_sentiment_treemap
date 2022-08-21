@@ -1,8 +1,8 @@
 name: Get Sentiment and update GitHub page
 
 on:
-  push:
-    branches: [ main ]
+  schedule:
+  - cron: */30 * * * * # runs every half hour
     
 jobs:
   build:
@@ -24,23 +24,23 @@ jobs:
       - name: Execute python script to update sentiment page
         run: python update_sentiment_page.py
         
-      - name: Clone repo from your GitHub page and commit newly generated sentiment html file
-        run: |
-          git clone https://github.com/damianboh/damianboh.github.io.git/ # change 'damianboh' to your username, this will clone your website repository into a folder 'your_username.github.io'
-          cp dow_jones_live_sentiment.html damianboh.github.io/dow_jones_live_sentiment.html # change 'damianboh to your username
-          cd damianboh.github.io # change 'damianboh to your username
+      - name: Clone repo from your github.io page and commit newly generated sentiment html file
+        run: | #change all the "damianboh"s below to your username
+          git clone https://github.com/damianboh/damianboh.github.io.git/ 
+          cp dow_jones_live_sentiment.html damianboh.github.io/dow_jones_live_sentiment.html 
+          cd damianboh.github.io 
           git add dow_jones_live_sentiment.html
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -m 'refresh page'        
+          git commit -m 'refresh dow jones sentiment page'        
         
       - name: Push updated html to github.io page
         uses: ad-m/github-push-action@master
-        with:
+        with: #change all the "damianboh"s below to your username
           # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
           github_token: ${{ secrets.TOKEN }}          
           # Repository name to push. Default or empty value represents current github repository (${GITHUB_REPOSITORY})
-          repository: "damianboh/damianboh.github.io" # change to your repository
+          repository: "damianboh/damianboh.github.io"
           branch: "main"
           # Determines if force push is used
           force: true
