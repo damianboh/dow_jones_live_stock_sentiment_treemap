@@ -7,7 +7,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:  
+    steps:
+      - name: Access the repo
+        uses: actions/checkout@v2 
+    
       - name: Configure Python
         uses: actions/setup-python@v2
         with:
