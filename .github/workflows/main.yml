@@ -37,12 +37,7 @@ jobs:
       - name: Push updated html to github.io page
         uses: ad-m/github-push-action@master
         with: #change all the "damianboh"s below to your username
-          # Token for the repo. Can be passed in using $\{{ secrets.GITHUB_TOKEN }}
           github_token: ${{ secrets.TOKEN }}          
-          # Repository name to push. Default or empty value represents current github repository (${GITHUB_REPOSITORY})
           repository: "damianboh/damianboh.github.io"
-          branch: "main"
-          # Determines if force push is used
-          force: true
-          # Directory to change to before pushing.
+          branch: "main"          
           directory: ./damianboh.github.io
