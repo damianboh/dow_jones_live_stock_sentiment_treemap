@@ -1,0 +1,5 @@
+yfinance
+bs4
+urllib
+plotly
+nltk
