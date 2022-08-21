@@ -26,9 +26,16 @@ finwiz_url = 'https://finviz.com/quote.ashx?t='
 news_tables = {}
 
 for ticker in tickers:
+    print(ticker)
     url = finwiz_url + ticker
-    req = Request(url=url,headers={'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:20.0) Gecko/20100101 Firefox/20.0'}) 
-    response = urlopen(req)    
+    req = Request(url=url,headers={'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:20.0) Gecko/20100101 Firefox/20.0'})
+
+    try:
+       response = urlopen(req)   
+    except:
+       time.sleep(1) # if there is an error and request is blocked, do it more slowly by waiting for 1 second before requesting again
+       response = urlopen(req)  
+        
     # Read the contents of the file into 'html'
     html = BeautifulSoup(response)
     # Find 'news-table' in the Soup and load it into 'news_table'
