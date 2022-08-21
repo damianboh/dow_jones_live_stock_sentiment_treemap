@@ -2,7 +2,7 @@ name: Get Sentiment and update GitHub page
 
 on:
   schedule:
-  - cron: */30 * * * * # runs every half hour
+    - cron: */30 * * * * # runs every half hour
     
 jobs:
   build:
