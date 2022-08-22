@@ -6,8 +6,7 @@ on:
     
 jobs:
   refresh_page:
-    runs-on: ubuntu-latest
-    
+    runs-on: ubuntu-latest    
     steps:
       - name: Access the repo
         uses: actions/checkout@v2 
