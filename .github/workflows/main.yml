@@ -5,9 +5,8 @@ on:
     - cron: "*/30 * * * *" # runs every half hour
     
 jobs:
-  build:
+  refresh_page:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     
     steps:
       - name: Access the repo
