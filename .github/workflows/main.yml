@@ -1,11 +1,13 @@
 name: Get Sentiment and update GitHub page
 
 on:
-  [push]
+  schedule:
+    - cron: "*/30 * * * *" # runs every half hour
     
 jobs:
   refresh_page:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
       - name: Access the repo
