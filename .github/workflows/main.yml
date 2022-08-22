@@ -7,7 +7,6 @@ on:
 jobs:
   refresh_page:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     
     steps:
       - name: Access the repo
