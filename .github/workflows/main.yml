@@ -7,6 +7,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
     steps:
       - name: Access the repo
         uses: actions/checkout@v2 
