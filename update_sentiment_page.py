@@ -28,7 +28,7 @@ news_tables = {}
 
 for ticker in tickers:
     url = finwiz_url + ticker
-    req = Request(url=url,headers={'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:20.0) Gecko/20100101 Firefox/20.0'})
+    req = Request(url=url,headers = { "user-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'})
 
     try:
        response = urlopen(req)   
