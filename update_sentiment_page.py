@@ -38,10 +38,12 @@ for ticker in tickers:
         
     # Read the contents of the file into 'html'
     html = BeautifulSoup(response)
+    print(html)
     # Find 'news-table' in the Soup and load it into 'news_table'
     news_table = html.find(id='news-table')
     # Add the table to our dictionary
     news_tables[ticker] = news_table
+    print(news_table)
 	
 
 # Parse the Date, Time and News Headlines into a Python List
