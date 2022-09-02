@@ -31,6 +31,7 @@ for ticker in tickers:
     req = Request(url=url,headers = { "user-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'})
 
     try:
+       time.sleep(10)
        response = urlopen(req)   
     except:
        time.sleep(10) # if there is an error and request is blocked, do it more slowly by waiting for 10 seconds before requesting again
