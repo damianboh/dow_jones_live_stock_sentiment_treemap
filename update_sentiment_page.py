@@ -37,7 +37,7 @@ for ticker in tickers:
        response = urlopen(req)  
         
     # Read the contents of the file into 'html'
-    html = BeautifulSoup(response)
+    html = BeautifulSoup(response, "lxml")
     # Find 'news-table' in the Soup and load it into 'news_table'
     news_table = html.find(id='news-table')
     # Add the table to our dictionary
