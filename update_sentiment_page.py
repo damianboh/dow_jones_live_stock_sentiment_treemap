@@ -64,7 +64,7 @@ for file_name, news_table in news_tables.items():
             time = date_scrape[1]
         # Extract the ticker from the file name, get the string up to the 1st '_'  
         ticker = file_name.split('_')[0]
-	print(ticker)
+        print(ticker)
         
         # Append ticker, date, time and headline as a list to the 'parsed_news' list
         parsed_news.append([ticker, date, time, text])
