@@ -70,6 +70,7 @@ for file_name, news_table in news_tables.items():
 			# Append ticker, date, time and headline as a list to the 'parsed_news' list
 			parsed_news.append([ticker, date, time, text])
 		except:
+			None
 
 # Perform Sentiment Analysis with Vader
 # Instantiate the sentiment intensity analyzer
