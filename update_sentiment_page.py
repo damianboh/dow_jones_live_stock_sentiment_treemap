@@ -30,15 +30,14 @@ for ticker in tickers:
     url = finwiz_url + ticker
     req = Request(url=url,headers = { "user-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'})
 
-    try:
-       time.sleep(10)
+    try:       
        response = urlopen(req)   
     except:
        time.sleep(10) # if there is an error and request is blocked, do it more slowly by waiting for 10 seconds before requesting again
        response = urlopen(req)  
         
     # Read the contents of the file into 'html'
-    html = BeautifulSoup(response, "lxml")
+    html = BeautifulSoup(response, "html")
     # Find 'news-table' in the Soup and load it into 'news_table'
     news_table = html.find(id='news-table')
     # Add the table to our dictionary
