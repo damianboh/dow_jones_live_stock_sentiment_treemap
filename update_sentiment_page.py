@@ -49,25 +49,27 @@ parsed_news = []
 for file_name, news_table in news_tables.items():
     # Iterate through all tr tags in 'news_table'
     for x in news_table.findAll('tr'):
-        # read the text from each tr tag into text
-        # get text from a only
-        text = x.a.get_text() 
-        # splite text in the td tag into a list 
-        date_scrape = x.td.text.split()
-        # if the length of 'date_scrape' is 1, load 'time' as the only element
-        if len(date_scrape) == 1:
-            time = date_scrape[0]
-            
-        # else load 'date' as the 1st element and 'time' as the second    
-        else:
-            date = date_scrape[0]
-            time = date_scrape[1]
-        # Extract the ticker from the file name, get the string up to the 1st '_'  
-        ticker = file_name.split('_')[0]
-        print(ticker)
-        
-        # Append ticker, date, time and headline as a list to the 'parsed_news' list
-        parsed_news.append([ticker, date, time, text])
+	try:
+		# read the text from each tr tag into text
+		# get text from a only
+		text = x.a.get_text() 
+		# splite text in the td tag into a list 
+		date_scrape = x.td.text.split()
+		# if the length of 'date_scrape' is 1, load 'time' as the only element
+		if len(date_scrape) == 1:
+		    time = date_scrape[0]
+
+		# else load 'date' as the 1st element and 'time' as the second    
+		else:
+		    date = date_scrape[0]
+		    time = date_scrape[1]
+		# Extract the ticker from the file name, get the string up to the 1st '_'  
+		ticker = file_name.split('_')[0]
+		print(ticker)
+
+		# Append ticker, date, time and headline as a list to the 'parsed_news' list
+		parsed_news.append([ticker, date, time, text])
+	except:
 
 # Perform Sentiment Analysis with Vader
 # Instantiate the sentiment intensity analyzer
