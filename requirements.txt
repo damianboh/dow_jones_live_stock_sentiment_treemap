@@ -1,4 +1,4 @@
-yfinance
+yahooquery
 bs4
 urllib3
 plotly

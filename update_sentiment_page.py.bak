@@ -96,21 +96,15 @@ parsed_and_scored_news['date'] = pd.to_datetime(parsed_and_scored_news.date).dt.
 mean_scores = parsed_and_scored_news.groupby(['ticker']).mean()
 
 # Get Market Cap, Sector and Industry of each Ticker
-symbols = ' '.join(tickers)
-
-tickers_data = Ticker(symbols)
-tickers_summary = tickers_data.summary_detail
-tickers_profile = tickers_data.asset_profile
-
 sectors = []
 industries = []
 marketcap = []
-
 for ticker in tickers:
     print(ticker)
-    marketcap.append(tickers_summary[ticker]['marketCap'])
-    sectors.append(tickers_profile[ticker]['sector'])
-    industries.append(tickers_profile[ticker]['industry'])
+    tickerdata = yf.Ticker(ticker)
+    marketcap.append(tickerdata.info['marketCap'])
+    sectors.append(tickerdata.info['sector'])
+    industries.append(tickerdata.info['industry'])
 	
 # Combine the Information Above and the Corresponding Tickers into a DataFrame
 d = {'Symbol': tickers, 'Sector': sectors, 'Industry': industries, 'Market Cap': marketcap}
