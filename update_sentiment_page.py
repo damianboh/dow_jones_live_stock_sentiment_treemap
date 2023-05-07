@@ -109,8 +109,14 @@ marketcap = []
 for ticker in tickers:
     print(ticker)
     marketcap.append(tickers_summary[ticker]['marketCap'])
-    sectors.append(tickers_profile[ticker]['sector'])
-    industries.append(tickers_profile[ticker]['industry'])
+    try:
+        sectors.append(tickers_profile[ticker]['sector'])
+    except:
+        sectors.append("Unknown")
+    try:
+        industries.append(tickers_profile[ticker]['industry'])
+    except:
+        industries.append("Unknown")
 	
 # Combine the Information Above and the Corresponding Tickers into a DataFrame
 d = {'Symbol': tickers, 'Sector': sectors, 'Industry': industries, 'Market Cap': marketcap}
