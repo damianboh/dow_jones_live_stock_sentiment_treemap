@@ -112,11 +112,11 @@ for ticker in tickers:
     try:
         sectors.append(tickers_profile[ticker]['sector'])
     except:
-        sectors.append("Unknown")
+        sectors.append("Others")
     try:
         industries.append(tickers_profile[ticker]['industry'])
     except:
-        industries.append("Unknown")
+        industries.append("Others")
 	
 # Combine the Information Above and the Corresponding Tickers into a DataFrame
 d = {'Symbol': tickers, 'Sector': sectors, 'Industry': industries, 'Market Cap': marketcap}
