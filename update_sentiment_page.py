@@ -107,7 +107,12 @@ parsed_and_scored_news = parsed_and_scored_news.join(scores_df, rsuffix='_right'
 parsed_and_scored_news['date'] = pd.to_datetime(parsed_and_scored_news.date).dt.date
 
 # Group by each ticker and get the mean of all sentiment scores
-mean_scores = parsed_and_scored_news.groupby(['ticker']).mean()
+# mean_scores = parsed_and_scored_news.groupby(['ticker']).mean()
+mean_scores = (
+    parsed_and_scored_news
+    .groupby('ticker', as_index=False)[['neg', 'neu', 'pos', 'compound']]
+    .mean()
+)
 
 # Get Market Cap, Sector and Industry of each Ticker
 # get the price, sector and industry of each ticker using the yahooquery api (UPDATE: yahooquery api no longer works)
