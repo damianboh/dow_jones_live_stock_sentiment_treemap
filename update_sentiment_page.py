@@ -25,8 +25,13 @@ from datetime import datetime
 import datetime
 
 # Get All Tickers from Dow Jones Index
-df_dow_jones = pd.read_html("https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average")[1]
-tickers = df_dow_jones['Symbol'].tolist()
+# df_dow_jones = pd.read_html("https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average")[1]
+# tickers = df_dow_jones['Symbol'].tolist()
+
+# this is a fallback as the above code is error prone
+tickers = ["AAPL","AMGN","AXP","BA","CAT","CRM","CSCO","CVX","DIS","DOW",
+        "GS","HD","HON","IBM","INTC","JNJ","JPM","KO","MCD","MMM",
+        "MRK","MSFT","NKE","PG","TRV","UNH","V","VZ","WBA","WMT"]
 
 # Scrape the Date, Time and News Headlines Data
 finwiz_url = 'https://finviz.com/quote.ashx?t='
