@@ -1,7 +1,7 @@
 # libraries for webscraping, parsing and getting stock data
 from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
-from yahooquery import Ticker
+#from yahooquery import Ticker
 import time
 
 import requests
