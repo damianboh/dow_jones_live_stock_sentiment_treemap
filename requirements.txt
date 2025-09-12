@@ -7,4 +7,3 @@ lxml==4.9.4
 plotly==5.24.1
 matplotlib==3.8.4
 nltk==3.9.1
-bs4
