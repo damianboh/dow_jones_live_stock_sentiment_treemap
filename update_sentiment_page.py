@@ -3,7 +3,6 @@ from urllib.request import urlopen, Request
 from bs4 import BeautifulSoup
 #from yahooquery import Ticker
 import time
-
 import requests
 import itertools
 import numpy as np
