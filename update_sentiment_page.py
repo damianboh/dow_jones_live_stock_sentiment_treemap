@@ -138,6 +138,7 @@ def get_ticker_data(ticker):
             data[key]= row.text
     data['Sector'] = soup.select('.quote-links')[0].select('.tab-link')[0].text
     data['Industry'] = soup.select('.quote-links')[0].select('.tab-link')[1].text
+    data['Company'] = soup.select_one("h2.quote-header_ticker-wrapper_company a").get_text(strip=True)
     if data['Market Cap'][-1] == 'B':
         data['Market Cap'] = float(data['Market Cap'][:-1])*10e9
     elif data['Market Cap'][-1] == 'M':
@@ -149,6 +150,7 @@ def get_ticker_data(ticker):
 sectors = []
 industries = []
 marketcap = []
+companies = []
 
 for ticker in tickers:
     print("Getting data market cap and sector/industry data for", ticker)
@@ -162,14 +164,19 @@ for ticker in tickers:
         industries.append(data['Industry'])
     except:
         industries.append("Others")
+    try:
+        companies.append(data['Company'])
+    except:
+        companies.append("Name Not Found")
 	
 # Combine the Information Above and the Corresponding Tickers into a DataFrame
-d = {'Symbol': tickers, 'Sector': sectors, 'Industry': industries, 'Market Cap': marketcap}
+d = {'Company': companies, 'Symbol': tickers, 'Sector': sectors, 'Industry': industries, 'Market Cap': marketcap}
 # create dataframe from 
 df_info = pd.DataFrame(data=d)
 
 # Get Names of Companies from the Dow Jones DataFrame obtained Earlier
-df_info_name = df_info.merge(df_dow_jones[['Company', 'Symbol']], on = 'Symbol')
+# df_info_name = df_info.merge(df_dow_jones[['Company', 'Symbol']], on = 'Symbol')
+df_info_name = df_info
 
 # Join Stock Information and Sentiment Information
 df = mean_scores.merge(df_info_name, left_on = 'ticker', right_on = 'Symbol')
@@ -207,4 +214,3 @@ with open('dow_jones_live_sentiment.html', 'a') as f:
     author = """ | Created by Damian Boh, check out my <a href="https://damianboh.github.io/">GitHub Page</a>"""
     f.write(title + updated + description + code + author)
     f.write(fig.to_html(full_html=False, include_plotlyjs='cdn')) # write the fig created above into the html file
-
