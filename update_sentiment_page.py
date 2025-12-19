@@ -1,33 +1,22 @@
-# libraries for webscraping, parsing and getting stock data
-from urllib.request import urlopen, Request
-from bs4 import BeautifulSoup
-#from yahooquery import Ticker
+import os
 import time
-import requests
-import itertools
-import numpy as np
-from itertools import chain
+import random
+import datetime as dt
+from datetime import datetime
 
-# for plotting and data manipulation
+import requests
+import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import plotly
+from bs4 import BeautifulSoup
+
 import plotly.express as px
 
-# NLTK VADER for sentiment analysis
+
 import nltk
 nltk.downloader.download('vader_lexicon')
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-# for getting current date and time to print 'last updated'
-from datetime import datetime
-import datetime
-
-# Get All Tickers from Dow Jones Index
-# df_dow_jones = pd.read_html("https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average")[1]
-# tickers = df_dow_jones['Symbol'].tolist()
-
-# this is a fallback as the above code is error prone
+# dow jones ticker
 tickers = [
     "V", "KO", "SHW", "PG", "TRV", "UNH", "VZ", "GS", "HD", "IBM",
     "JNJ", "JPM", "MCD", "MMM", "MRK", "NKE", "WMT", "CSCO", "AAPL",
@@ -35,181 +24,338 @@ tickers = [
     "MSFT", "NVDA"
 ]
 
-# Scrape the Date, Time and News Headlines Data
-finwiz_url = 'https://finviz.com/quote.ashx?t='
-news_tables = {}
+FINVIZ_QUOTE_URL = "https://finviz.com/quote.ashx?t={ticker}"
 
-for ticker in tickers:
-    url = finwiz_url + ticker
-    req = Request(url=url,headers = { "user-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36'})
+MIN_SLEEP_BETWEEN_TICKERS = 0.7
+MAX_SLEEP_BETWEEN_TICKERS = 1.5
 
-    try:       
-       response = urlopen(req)   
-    except:
-       time.sleep(10) # if there is an error and request is blocked, do it more slowly by waiting for 10 seconds before requesting again
-       response = urlopen(req)  
-        
-    # Read the contents of the file into 'html'
-    html = BeautifulSoup(response, "html")
-    # Find 'news-table' in the Soup and load it into 'news_table'
-    news_table = html.find(id='news-table')
-    # Add the table to our dictionary
-    news_tables[ticker] = news_table	
 
-# Parse the Date, Time and News Headlines into a Python List
-parsed_news = []
-# Iterate through the news
-for file_name, news_table in news_tables.items():
-	# Iterate through all tr tags in 'news_table'
-	for x in news_table.findAll('tr'):
-		# occasionally x (below) may be None when the html table is poorly formatted, skip it in try except instead of throwing an error and exiting
-		# may also use an if loop here to check if x is None first
-		try: 
-			# read the text from each tr tag into text
-			# get text from a only
-			text = x.a.get_text() 
-			# splite text in the td tag into a list 
-			date_scrape = x.td.text.split()
-			# if the length of 'date_scrape' is 1, load 'time' as the only element
-			if len(date_scrape) == 1:
-				time = date_scrape[0]
+def make_session() -> requests.Session:
+    s = requests.Session()
+    s.headers.update({
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Connection": "keep-alive",
+        "DNT": "1",
+        "Upgrade-Insecure-Requests": "1",
+    })
+    return s
 
-			# else load 'date' as the 1st element and 'time' as the second    
-			else:
-				date = date_scrape[0]
-				time = date_scrape[1]
-			# Extract the ticker from the file name, get the string up to the 1st '_'  
-			ticker = file_name.split('_')[0]
-			print("Scraping news for", ticker)
+def looks_blocked(html_text: str) -> bool:
+    """Heuristic: Finviz (or proxy/WAF) sometimes returns short/blocked pages."""
+    if not html_text or len(html_text) < 4000:
+        return True
+    lowered = html_text.lower()
+    block_markers = [
+        "access denied", "forbidden", "captcha", "verify you are human",
+        "unusual traffic", "temporarily unavailable"
+    ]
+    return any(m in lowered for m in block_markers)
 
-			# Append ticker, date, time and headline as a list to the 'parsed_news' list
-			parsed_news.append([ticker, date, time, text])
-		except Exception as e:
-			print(e)
+def fetch_quote_soup(session: requests.Session, ticker: str, max_retries: int = 6) -> BeautifulSoup | None:
+    url = FINVIZ_QUOTE_URL.format(ticker=ticker)
+    last_err = None
 
-# Perform Sentiment Analysis with Vader
-# Instantiate the sentiment intensity analyzer
-vader = SentimentIntensityAnalyzer()
-# Set column names
-columns = ['ticker', 'date', 'time', 'headline']
-# Convert the parsed_news list into a DataFrame called 'parsed_and_scored_news'
-parsed_and_scored_news = pd.DataFrame(parsed_news, columns=columns)
-# There is a value "Today" for date column, instead of the actual today's date, so replace it
-today = datetime.date.today()
-parsed_and_scored_news = parsed_and_scored_news.replace("Today", today)
+    for attempt in range(1, max_retries + 1):
+        try:
+            r = session.get(url, timeout=25)
+            status = r.status_code
 
-# Iterate through the headlines and get the polarity scores using vader
-scores = parsed_and_scored_news['headline'].apply(vader.polarity_scores).tolist()
-# Convert the 'scores' list of dicts into a DataFrame
-scores_df = pd.DataFrame(scores)
+            # If rate-limited / blocked, backoff and retry
+            if status in (401, 403, 429, 503):
+                sleep_s = (2 ** (attempt - 1)) + random.uniform(0.2, 1.5)
+                print(f"[{ticker}] HTTP {status} (possible block). Backing off {sleep_s:.1f}s...")
+                time.sleep(sleep_s)
+                continue
 
-# Join the DataFrames of the news and the list of dicts
-parsed_and_scored_news = parsed_and_scored_news.join(scores_df, rsuffix='_right')
-# Convert the date column from string to datetime
-parsed_and_scored_news['date'] = pd.to_datetime(parsed_and_scored_news.date).dt.date
+            if status != 200:
+                sleep_s = (2 ** (attempt - 1)) + random.uniform(0.2, 1.5)
+                print(f"[{ticker}] HTTP {status}. Backing off {sleep_s:.1f}s...")
+                time.sleep(sleep_s)
+                continue
 
-# Group by each ticker and get the mean of all sentiment scores
-# mean_scores = parsed_and_scored_news.groupby(['ticker']).mean()
-mean_scores = (
-    parsed_and_scored_news
-    .groupby('ticker', as_index=False)[['neg', 'neu', 'pos', 'compound']]
-    .mean()
-)
+            if looks_blocked(r.text):
+                sleep_s = (2 ** (attempt - 1)) + random.uniform(0.2, 1.5)
+                print(f"[{ticker}] HTML looks blocked/partial. Backing off {sleep_s:.1f}s...")
+                time.sleep(sleep_s)
+                continue
 
-# Get Market Cap, Sector and Industry of each Ticker
-# get the price, sector and industry of each ticker using the yahooquery api (UPDATE: yahooquery api no longer works)
-# UPDATE: yahooquery api no longer works so this code instead scrapes the finviz website for the marketcap, sector and industry of each ticker
+            return BeautifulSoup(r.text, "html.parser")
 
-def get_ticker_data(ticker):
+        except requests.RequestException as e:
+            last_err = e
+            sleep_s = (2 ** (attempt - 1)) + random.uniform(0.2, 1.5)
+            print(f"[{ticker}] Request error: {e}. Backing off {sleep_s:.1f}s...")
+            time.sleep(sleep_s)
+
+    print(f"[{ticker}] Failed to fetch after {max_retries} retries. Last error: {last_err}")
+    return None
+
+
+# Parsers (news + snapshot)
+def parse_news_rows(soup: BeautifulSoup, ticker: str) -> list[list]:
+    """
+    Returns rows: [ticker, date_str, time_str, headline]
+    Finviz uses:
+      - "Today 10:15AM" OR
+      - "Dec-19-25 10:15AM" OR
+      - for subsequent rows same day: only "10:12AM" (date omitted)
+    """
+    rows_out = []
+    table = soup.find(id="news-table")
+    if not table:
+        return rows_out
+
+    last_date = None
+
+    for tr in table.find_all("tr"):
+        try:
+            a = tr.find("a")
+            td = tr.find("td")
+            if not a or not td:
+                continue
+
+            headline = a.get_text(strip=True)
+            stamp = td.get_text(" ", strip=True).split()
+
+            if len(stamp) == 1:
+                time_str = stamp[0]
+                date_str = last_date
+            else:
+                date_str, time_str = stamp[0], stamp[1]
+                last_date = date_str
+
+            if date_str is None:
+                continue
+
+            rows_out.append([ticker, date_str, time_str, headline])
+        except Exception:
+            # never let a malformed row crash the run
+            continue
+
+    return rows_out
+
+def parse_snapshot_info(soup: BeautifulSoup) -> dict:
+    """
+    Extracts Market Cap, Sector, Industry, Company, plus any other snapshot key/values.
+    Returns a dict with safe defaults if missing.
+    """
     data = {}
-    url_base = "https://finviz.com/quote.ashx?t="
-    url = url_base + ticker
-    headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:76.0) Gecko/20100101 Firefox/76.0'}
-    soup = BeautifulSoup(requests.get(url, headers=headers).content, 'html.parser')
-    l = []
-    # parse all values in table into dict
-    for i, row in enumerate(soup.select('.snapshot-td2')):
-        #print(row)
-        #l.append([td.text for td in row.select(""'td')])
-        if i%2 == 0:
-            key = row.text
-        else:   
-            data[key]= row.text
-    data['Sector'] = soup.select('.quote-links')[0].select('.tab-link')[0].text
-    data['Industry'] = soup.select('.quote-links')[0].select('.tab-link')[1].text
-    data['Company'] = soup.select_one("h2.quote-header_ticker-wrapper_company a").get_text(strip=True)
-    if data['Market Cap'][-1] == 'B':
-        data['Market Cap'] = float(data['Market Cap'][:-1])*10e9
-    elif data['Market Cap'][-1] == 'M':
-        data['Market Cap'] = float(data['Market Cap'][:-1])*10e6
-    else:
-        pass
+
+    # Snapshot table values
+    snap_cells = soup.select(".snapshot-td2")
+    for i, cell in enumerate(snap_cells):
+        txt = cell.get_text(strip=True)
+        if not txt:
+            continue
+        if i % 2 == 0:
+            key = txt
+        else:
+            data[key] = txt
+
+    # Sector / Industry (quote links)
+    tabs = soup.select(".quote-links .tab-link")
+    data["Sector"] = tabs[0].get_text(strip=True) if len(tabs) >= 1 else "Others"
+    data["Industry"] = tabs[1].get_text(strip=True) if len(tabs) >= 2 else "Others"
+
+    # Company
+    company_el = soup.select_one("h2.quote-header_ticker-wrapper_company a")
+    data["Company"] = company_el.get_text(strip=True) if company_el else "Name Not Found"
+
+    # Normalize Market Cap to float dollars when possible
+    mc = data.get("Market Cap")
+    data["Market Cap"] = normalize_market_cap(mc)
+
     return data
 
+def normalize_market_cap(mc) -> float:
+    if mc is None:
+        return np.nan
+    if isinstance(mc, (int, float)):
+        return float(mc)
+
+    s = str(mc).strip()
+    if s in ("", "-", "N/A"):
+        return np.nan
+
+    try:
+        if s.endswith("B"):
+            return float(s[:-1]) * 1e9
+        if s.endswith("M"):
+            return float(s[:-1]) * 1e6
+        if s.endswith("K"):
+            return float(s[:-1]) * 1e3
+        return float(s.replace(",", ""))
+    except Exception:
+        return np.nan
+
+
+def finviz_date_to_date(date_str: str) -> dt.date | None:
+    """
+    Finviz examples:
+      "Today"
+      "Dec-19-25" (most common)
+      sometimes could be "Dec-19-2025" (rare)
+    """
+    if date_str is None:
+        return None
+    s = str(date_str).strip()
+
+    if s.lower() == "today":
+        return dt.date.today()
+
+    # Try common Finviz formats
+    for fmt in ("%b-%d-%y", "%b-%d-%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
+
+    # Last resort: let pandas/dateutil try (but controlled)
+    try:
+        return pd.to_datetime(s, errors="coerce").date()
+    except Exception:
+        return None
+
+session = make_session()
+
+parsed_news = []
+companies = []
 sectors = []
 industries = []
-marketcap = []
-companies = []
+market_caps = []
+valid_tickers = [] 
 
 for ticker in tickers:
-    print("Getting data market cap and sector/industry data for", ticker)
-    data = get_ticker_data(ticker)
-    marketcap.append(data['Market Cap'])
-    try:
-        sectors.append(data['Sector'])
-    except:
-        sectors.append("Others")
-    try:
-        industries.append(data['Industry'])
-    except:
-        industries.append("Others")
-    try:
-        companies.append(data['Company'])
-    except:
-        companies.append("Name Not Found")
-	
-# Combine the Information Above and the Corresponding Tickers into a DataFrame
-d = {'Company': companies, 'Symbol': tickers, 'Sector': sectors, 'Industry': industries, 'Market Cap': marketcap}
-# create dataframe from 
-df_info = pd.DataFrame(data=d)
+    print(f"Fetching Finviz page for {ticker} ...")
+    soup = fetch_quote_soup(session, ticker)
 
-# Get Names of Companies from the Dow Jones DataFrame obtained Earlier
-# df_info_name = df_info.merge(df_dow_jones[['Company', 'Symbol']], on = 'Symbol')
-df_info_name = df_info
+    if soup is None:
+        # fallback placeholders
+        info = {"Company": "Name Not Found", "Sector": "Others", "Industry": "Others", "Market Cap": np.nan}
+        news_rows = []
+    else:
+        info = parse_snapshot_info(soup)
+        news_rows = parse_news_rows(soup, ticker)
 
-# Join Stock Information and Sentiment Information
-df = mean_scores.merge(df_info_name, left_on = 'ticker', right_on = 'Symbol')
-df = df.rename(columns={"compound": "Sentiment Score", "neg": "Negative", "neu": "Neutral", "pos": "Positive"})
+    # append info rows
+    valid_tickers.append(ticker)
+    companies.append(info.get("Company", "Name Not Found"))
+    sectors.append(info.get("Sector", "Others"))
+    industries.append(info.get("Industry", "Others"))
+    market_caps.append(info.get("Market Cap", np.nan))
 
-# Generate the Treemap Plot
-# group data into sectors at the highest level, breaks it down into industry, and then ticker, specified in the 'path' parameter
-# the 'values' parameter uses the value of the column to determine the relative size of each box in the chart
-# the color of the chart follows the sentiment score
-# when the mouse is hovered over each box in the chart, the negative, neutral, positive and overall sentiment scores will all be shown
-# the color is red (#ff0000) for negative sentiment scores, black (#000000) for 0 sentiment score and green (#00FF00) for positive sentiment scores
-fig = px.treemap(df, path=[px.Constant("Dow Jones"), 'Sector', 'Industry', 'Symbol'], values='Market Cap',
-                  color='Sentiment Score', hover_data=['Company', 'Negative', 'Neutral', 'Positive', 'Sentiment Score'],
-                  color_continuous_scale=['#FF0000', "#000000", '#00FF00'],
-                  color_continuous_midpoint=0)
+    # append news rows
+    if news_rows:
+        parsed_news.extend(news_rows)
 
-fig.data[0].customdata = df[['Company', 'Negative', 'Neutral', 'Positive', 'Sentiment Score']].round(3) # round to 3 decimal places
+    # random sleep
+    time.sleep(random.uniform(MIN_SLEEP_BETWEEN_TICKERS, MAX_SLEEP_BETWEEN_TICKERS))
+
+# Build news dataframe + VADER to score sentiment
+columns = ["ticker", "date", "time", "headline"]
+parsed_and_scored_news = pd.DataFrame(parsed_news, columns=columns)
+
+# if no news rows at all (blocked), create empty structure to avoid crashing
+if parsed_and_scored_news.empty:
+    parsed_and_scored_news = pd.DataFrame(columns=columns + ["neg", "neu", "pos", "compound"])
+else:
+    # convert "Today"/"Dec-19-25" into actual date objects
+    parsed_and_scored_news["date"] = parsed_and_scored_news["date"].apply(finviz_date_to_date)
+
+    vader = SentimentIntensityAnalyzer()
+    scores = parsed_and_scored_news["headline"].astype(str).apply(vader.polarity_scores).tolist()
+    scores_df = pd.DataFrame(scores)
+
+    parsed_and_scored_news = parsed_and_scored_news.join(scores_df)
+
+# compute mean sentiment per ticker (ensure all tickers appear)
+if "compound" in parsed_and_scored_news.columns and not parsed_and_scored_news.empty:
+    mean_scores = (
+        parsed_and_scored_news
+        .groupby("ticker", as_index=False)[["neg", "neu", "pos", "compound"]]
+        .mean()
+    )
+else:
+    mean_scores = pd.DataFrame({
+        "ticker": valid_tickers,
+        "neg": np.nan,
+        "neu": np.nan,
+        "pos": np.nan,
+        "compound": np.nan,
+    })
+
+# Build info dataframe
+df_info = pd.DataFrame({
+    "Company": companies,
+    "Symbol": valid_tickers,
+    "Sector": sectors,
+    "Industry": industries,
+    "Market Cap": market_caps,
+})
+
+# Merge info + sentiment
+df = mean_scores.merge(df_info, left_on="ticker", right_on="Symbol", how="right")
+
+# If a ticker had no news, compound may be NaN. Fill with 0 for coloring.
+df["compound"] = df["compound"].fillna(0.0)
+df["neg"] = df["neg"].fillna(0.0)
+df["neu"] = df["neu"].fillna(0.0)
+df["pos"] = df["pos"].fillna(0.0)
+
+df = df.rename(columns={
+    "compound": "Sentiment Score",
+    "neg": "Negative",
+    "neu": "Neutral",
+    "pos": "Positive",
+})
+
+# If Market Cap missing, give small value so treemap can still render
+df["Market Cap"] = df["Market Cap"].fillna(1.0)
+
+
+# Treemap
+fig = px.treemap(
+    df,
+    path=[px.Constant("Dow Jones"), "Sector", "Industry", "Symbol"],
+    values="Market Cap",
+    color="Sentiment Score",
+    hover_data=["Company", "Negative", "Neutral", "Positive", "Sentiment Score"],
+    color_continuous_scale=["#FF0000", "#000000", "#00FF00"],
+    color_continuous_midpoint=0,
+)
+
+fig.data[0].customdata = df[["Company", "Negative", "Neutral", "Positive", "Sentiment Score"]].round(3)
 fig.data[0].texttemplate = "%{label}<br>%{customdata[4]}"
-
 fig.update_traces(textposition="middle center")
-fig.update_layout(margin = dict(t=30, l=10, r=10, b=10), font_size=20)
+fig.update_layout(margin=dict(t=30, l=10, r=10, b=10), font_size=20)
 
-# Get current date, time and timezone to print to the html page
-now = datetime.datetime.now()
+# Write HTML
+now = dt.datetime.now()
 dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-timezone_string = datetime.datetime.now().astimezone().tzname()
+timezone_string = dt.datetime.now().astimezone().tzname()
 
-# Generate HTML File with Updated Time and Treemap
-with open('dow_jones_live_sentiment.html', 'a') as f:
-    f.truncate(0) # clear file if something is already written on it
+out_html = "dow_jones_live_sentiment.html"
+
+with open(out_html, "w", encoding="utf-8") as f:
     title = "<h1>Dow Jones Stock Sentiment Dashboard</h1>"
-    updated = "<h2>Last updated: " + dt_string + " (Timezone: " + timezone_string + ")</h2>"
-    description = "This dashboard is updated every half an hour with sentiment analysis performed on latest scraped news headlines from the FinViz website.<br><br>"
-    code = """<a href="https://medium.com/datadriveninvestor/use-github-actions-to-create-a-live-stock-sentiment-dashboard-online-580a08457650">Explanatory Article</a> | <a href="https://github.com/damianboh/dow_jones_live_stock_sentiment_treemap">Source Code</a>"""
-    author = """ | Created by Damian Boh, check out my <a href="https://damianboh.github.io/">GitHub Page</a>"""
-    f.write(title + updated + description + code + author)
-    f.write(fig.to_html(full_html=False, include_plotlyjs='cdn')) # write the fig created above into the html file
+    updated = f"<h2>Last updated: {dt_string} (Timezone: {timezone_string})</h2>"
+    description = (
+        "This dashboard is updated every half an hour with sentiment analysis performed "
+        "on latest scraped news headlines from the FinViz website.<br><br>"
+    )
+    code_links = (
+        '<a href="https://medium.com/datadriveninvestor/use-github-actions-to-create-a-live-stock-sentiment-dashboard-online-580a08457650">'
+        "Explanatory Article</a> | "
+        '<a href="https://github.com/damianboh/dow_jones_live_stock_sentiment_treemap">Source Code</a>'
+    )
+    author = ' | Created by Damian Boh, check out my <a href="https://damianboh.github.io/">GitHub Page</a>'
+
+    f.write(title + updated + description + code_links + author)
+    f.write(fig.to_html(full_html=False, include_plotlyjs="cdn"))
+
+print(f"Done. Wrote: {out_html}")
